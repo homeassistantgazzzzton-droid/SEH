@@ -1,0 +1,11 @@
+[Unit]
+Description=Simply Energy Home — Check for update requests every minute
+
+[Timer]
+OnBootSec=2min
+OnUnitActiveSec=60s
+AccuracySec=10s
+Unit=seh-update.service
+
+[Install]
+WantedBy=timers.target

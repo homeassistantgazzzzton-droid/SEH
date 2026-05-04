@@ -1,0 +1,1139 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#fbbf24">
+<title>Bienvenue — Simply Energy Home</title>
+<link rel="icon" type="image/svg+xml" href="/icon-192.svg">
+<style>
+  /* ─────────────────────────────────────────────────────────────────
+     Simply Energy Home — Wizard d'onboarding
+     Aesthetic : warm, clean, accessible (cible utilisateur lambda)
+     ───────────────────────────────────────────────────────────────── */
+
+  @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap');
+
+  :root {
+    --bg: #fcfaf6;
+    --bg-elev: #ffffff;
+    --ink: #1a1814;
+    --ink-soft: #6b6358;
+    --ink-faded: #a89e8e;
+    --line: #e8e1d3;
+    --line-soft: #f0ebdf;
+    --accent: #f59e0b;       /* solaire chaud */
+    --accent-deep: #b45309;
+    --accent-soft: #fef3c7;
+    --grass: #4d7c0f;        /* succès / nature */
+    --grass-soft: #ecfccb;
+    --error: #b91c1c;
+    --error-soft: #fee2e2;
+    --shadow: 0 1px 2px rgba(26,24,20,.04), 0 4px 16px rgba(26,24,20,.06);
+    --shadow-lift: 0 4px 8px rgba(26,24,20,.06), 0 16px 40px rgba(26,24,20,.10);
+    --radius: 14px;
+    --radius-sm: 8px;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #14110c;
+      --bg-elev: #1d1914;
+      --ink: #f4eedf;
+      --ink-soft: #a89e8e;
+      --ink-faded: #6b6358;
+      --line: #2a2520;
+      --line-soft: #221d18;
+      --accent-soft: #3a2e0f;
+      --grass-soft: #1f2e0c;
+      --error-soft: #3a1414;
+    }
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+    min-height: 100vh;
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+  }
+
+  /* Decorative background — sun rays + grain */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background:
+      radial-gradient(circle at 90% -10%, rgba(245,158,11,.18) 0%, transparent 40%),
+      radial-gradient(circle at -10% 90%, rgba(77,124,15,.10) 0%, transparent 35%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .wizard {
+    position: relative;
+    z-index: 1;
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 32px 24px 80px;
+  }
+
+  /* ─── Header ──────────────────────────────────────────────────── */
+  header {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 48px;
+  }
+  .logo-mark {
+    width: 44px; height: 44px;
+    background: linear-gradient(135deg, var(--accent) 0%, var(--accent-deep) 100%);
+    border-radius: 12px;
+    display: flex;
+    align-items: center; justify-content: center;
+    font-size: 24px;
+    box-shadow: 0 4px 12px rgba(245,158,11,.35);
+  }
+  .brand h1 {
+    font-family: 'Fraunces', serif;
+    font-weight: 500;
+    font-size: 22px;
+    letter-spacing: -0.01em;
+  }
+  .brand .tagline {
+    font-size: 12px;
+    color: var(--ink-faded);
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+  }
+
+  /* ─── Progress ───────────────────────────────────────────────── */
+  .progress {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 40px;
+  }
+  .progress-bar {
+    flex: 1;
+    height: 4px;
+    background: var(--line);
+    border-radius: 2px;
+    overflow: hidden;
+    position: relative;
+  }
+  .progress-bar.active::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(90deg, var(--accent), var(--accent-deep));
+    border-radius: 2px;
+    transform-origin: left;
+    animation: fillBar .5s ease forwards;
+  }
+  .progress-bar.done {
+    background: var(--grass);
+  }
+  @keyframes fillBar {
+    from { transform: scaleX(0); }
+    to { transform: scaleX(1); }
+  }
+
+  /* ─── Steps ──────────────────────────────────────────────────── */
+  .step {
+    display: none;
+    animation: fadeIn .4s ease;
+  }
+  .step.active { display: block; }
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: none; }
+  }
+
+  .step-label {
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: var(--accent-deep);
+    font-weight: 600;
+    margin-bottom: 12px;
+  }
+  .step h2 {
+    font-family: 'Fraunces', serif;
+    font-weight: 500;
+    font-size: 36px;
+    line-height: 1.15;
+    letter-spacing: -0.02em;
+    margin-bottom: 16px;
+  }
+  .step .lede {
+    font-size: 17px;
+    color: var(--ink-soft);
+    margin-bottom: 36px;
+    max-width: 560px;
+  }
+
+  /* ─── Form elements ──────────────────────────────────────────── */
+  .field {
+    margin-bottom: 24px;
+  }
+  .field label {
+    display: block;
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 8px;
+    color: var(--ink);
+  }
+  .field .hint {
+    font-size: 13px;
+    color: var(--ink-faded);
+    margin-top: 6px;
+  }
+  input[type="text"], input[type="password"], input[type="email"],
+  input[type="number"], select, textarea {
+    width: 100%;
+    padding: 12px 14px;
+    border: 1.5px solid var(--line);
+    border-radius: var(--radius-sm);
+    background: var(--bg-elev);
+    color: var(--ink);
+    font: inherit;
+    font-size: 15px;
+    transition: border-color .15s, box-shadow .15s;
+  }
+  input:focus, select:focus, textarea:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 4px rgba(245,158,11,.15);
+  }
+  textarea { resize: vertical; min-height: 100px; }
+
+  /* ─── Module cards (étape 2) ────────────────────────────────── */
+  .modules-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 24px;
+  }
+  @media (max-width: 540px) {
+    .modules-grid { grid-template-columns: 1fr; }
+  }
+  .module-card {
+    background: var(--bg-elev);
+    border: 2px solid var(--line);
+    border-radius: var(--radius);
+    padding: 16px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    transition: all .15s;
+    position: relative;
+    user-select: none;
+  }
+  .module-card:hover {
+    border-color: var(--ink-faded);
+    transform: translateY(-1px);
+    box-shadow: var(--shadow);
+  }
+  .module-card.checked {
+    border-color: var(--accent);
+    background: var(--accent-soft);
+  }
+  .module-card .icon { font-size: 28px; }
+  .module-card .title {
+    font-weight: 600;
+    font-size: 15px;
+    margin-bottom: 2px;
+  }
+  .module-card .desc { font-size: 13px; color: var(--ink-soft); }
+  .module-card .check {
+    position: absolute; top: 12px; right: 12px;
+    width: 22px; height: 22px;
+    border: 2px solid var(--line);
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    color: white;
+    background: var(--bg-elev);
+    transition: all .15s;
+  }
+  .module-card.checked .check {
+    background: var(--accent);
+    border-color: var(--accent);
+  }
+  .module-card.checked .check::before {
+    content: '✓';
+    font-size: 13px;
+    font-weight: 700;
+  }
+
+  /* ─── Scan results ──────────────────────────────────────────── */
+  .scan-area {
+    background: var(--bg-elev);
+    border: 1px dashed var(--line);
+    border-radius: var(--radius);
+    padding: 20px;
+    margin-bottom: 24px;
+  }
+  .scan-status {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: var(--ink-soft);
+    font-size: 14px;
+  }
+  .scan-spinner {
+    width: 16px; height: 16px;
+    border: 2px solid var(--line);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .scan-results { margin-top: 16px; }
+  .scan-device {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 12px;
+    background: var(--bg);
+    border-radius: var(--radius-sm);
+    margin-bottom: 6px;
+    font-size: 14px;
+    cursor: pointer;
+    border: 1px solid transparent;
+    transition: border-color .15s;
+  }
+  .scan-device:hover { border-color: var(--accent); }
+  .scan-device .ip { font-family: 'IBM Plex Mono', ui-monospace, monospace; color: var(--ink); font-weight: 500; }
+  .scan-device .modules { color: var(--accent-deep); font-size: 13px; }
+  .scan-device .ports { color: var(--ink-faded); font-size: 12px; margin-left: auto; }
+
+  /* ─── Test connection ───────────────────────────────────────── */
+  .test-result {
+    margin-top: 12px;
+    padding: 10px 14px;
+    border-radius: var(--radius-sm);
+    font-size: 14px;
+    display: none;
+  }
+  .test-result.ok { background: var(--grass-soft); color: var(--grass); display: block; }
+  .test-result.ko { background: var(--error-soft); color: var(--error); display: block; }
+
+  /* ─── Buttons ────────────────────────────────────────────────── */
+  .actions {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 40px;
+    padding-top: 24px;
+    border-top: 1px solid var(--line-soft);
+    gap: 12px;
+  }
+  .btn {
+    padding: 12px 24px;
+    border: none;
+    border-radius: var(--radius-sm);
+    font: inherit;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all .15s;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .btn-primary {
+    background: var(--ink);
+    color: var(--bg);
+  }
+  .btn-primary:hover { transform: translateY(-1px); box-shadow: var(--shadow-lift); }
+  .btn-primary:disabled {
+    background: var(--line);
+    color: var(--ink-faded);
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+  }
+  .btn-ghost {
+    background: transparent;
+    color: var(--ink-soft);
+  }
+  .btn-ghost:hover { color: var(--ink); }
+  .btn-secondary {
+    background: var(--bg-elev);
+    color: var(--ink);
+    border: 1.5px solid var(--line);
+  }
+  .btn-secondary:hover { border-color: var(--ink-faded); }
+  .btn-small { padding: 8px 14px; font-size: 13px; }
+
+  /* ─── Module config sub-section ──────────────────────────────── */
+  .module-config {
+    background: var(--bg-elev);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 24px;
+    margin-bottom: 16px;
+  }
+  .module-config h3 {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-family: 'Fraunces', serif;
+    font-weight: 500;
+    font-size: 22px;
+    margin-bottom: 4px;
+  }
+  .module-config .sub {
+    color: var(--ink-soft);
+    font-size: 14px;
+    margin-bottom: 20px;
+  }
+  .field-row {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 12px;
+  }
+
+  /* ─── Recap ──────────────────────────────────────────────────── */
+  .recap-section {
+    background: var(--bg-elev);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 20px;
+    margin-bottom: 12px;
+  }
+  .recap-section h4 {
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: .1em;
+    color: var(--ink-faded);
+    margin-bottom: 12px;
+  }
+  .recap-section .row {
+    display: flex;
+    justify-content: space-between;
+    padding: 6px 0;
+    font-size: 14px;
+  }
+  .recap-section .row .k { color: var(--ink-soft); }
+  .recap-section .row .v { font-weight: 500; }
+
+  /* ─── Footer ─────────────────────────────────────────────────── */
+  footer {
+    margin-top: 60px;
+    padding-top: 24px;
+    border-top: 1px solid var(--line-soft);
+    text-align: center;
+    font-size: 13px;
+    color: var(--ink-faded);
+  }
+  footer a { color: var(--ink-soft); text-decoration: underline; }
+
+  /* ─── Welcome step ──────────────────────────────────────────── */
+  .welcome-illustration {
+    height: 120px;
+    margin: 0 auto 40px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 80px;
+    animation: gentleFloat 4s ease-in-out infinite;
+  }
+  @keyframes gentleFloat {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-6px); }
+  }
+
+  .price-presets {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 8px;
+    margin-bottom: 16px;
+  }
+  .preset {
+    padding: 10px;
+    border: 1.5px solid var(--line);
+    border-radius: var(--radius-sm);
+    background: var(--bg-elev);
+    cursor: pointer;
+    text-align: center;
+    font-size: 13px;
+    font-weight: 500;
+    transition: all .15s;
+  }
+  .preset:hover { border-color: var(--accent); }
+  .preset.selected { background: var(--accent-soft); border-color: var(--accent); }
+  .preset .price { display: block; font-size: 11px; color: var(--ink-faded); font-weight: 400; margin-top: 2px; }
+
+  .alert-box {
+    padding: 12px 14px;
+    background: var(--accent-soft);
+    border-left: 3px solid var(--accent);
+    border-radius: var(--radius-sm);
+    font-size: 14px;
+    margin-bottom: 16px;
+  }
+  .alert-box.error { background: var(--error-soft); border-color: var(--error); color: var(--error); }
+</style>
+</head>
+<body>
+
+<div class="wizard">
+
+  <header>
+    <div class="logo-mark">⚡</div>
+    <div class="brand">
+      <h1>Simply Energy Home</h1>
+      <div class="tagline">Configuration initiale</div>
+    </div>
+  </header>
+
+  <div class="progress" id="progressBar"></div>
+
+  <!-- ════════════════════════════════════════════════════════════
+       STEP 1 — Welcome
+       ════════════════════════════════════════════════════════════ -->
+  <section class="step active" data-step="0">
+    <div class="welcome-illustration">☀️</div>
+    <div class="step-label">Étape 1 sur 6</div>
+    <h2>Bienvenue chez Simply Energy Home</h2>
+    <p class="lede">
+      En quelques minutes, nous allons configurer votre installation : onduleur, batteries, tarifs.
+      Vous pourrez tout modifier plus tard depuis les réglages.
+    </p>
+    <div class="actions">
+      <span></span>
+      <button class="btn btn-primary" onclick="goNext()">Commencer →</button>
+    </div>
+  </section>
+
+  <!-- ════════════════════════════════════════════════════════════
+       STEP 2 — Module selection
+       ════════════════════════════════════════════════════════════ -->
+  <section class="step" data-step="1">
+    <div class="step-label">Étape 2 sur 6</div>
+    <h2>Quel matériel possédez-vous ?</h2>
+    <p class="lede">
+      Cochez tout ce qui est installé chez vous. Vous pouvez tout choisir si vous n'êtes pas sûr —
+      nous configurerons ensemble ensuite.
+    </p>
+    <div class="modules-grid" id="modulesGrid">
+      <!-- Rempli en JS depuis /api/setup/status -->
+    </div>
+    <div class="actions">
+      <button class="btn btn-ghost" onclick="goPrev()">← Retour</button>
+      <button class="btn btn-primary" id="step2Next" onclick="goNext()">Continuer →</button>
+    </div>
+  </section>
+
+  <!-- ════════════════════════════════════════════════════════════
+       STEP 3 — Network scan + module configs
+       ════════════════════════════════════════════════════════════ -->
+  <section class="step" data-step="2">
+    <div class="step-label">Étape 3 sur 6</div>
+    <h2>Détection sur votre réseau</h2>
+    <p class="lede">
+      Lancez un scan pour détecter automatiquement vos passerelles (Cerbo, Elfin, Waveshare…).
+      Vous pourrez aussi saisir manuellement les adresses IP.
+    </p>
+
+    <div class="scan-area">
+      <div style="display: flex; align-items: center; justify-content: space-between;">
+        <div class="scan-status" id="scanStatus">Cliquez pour démarrer le scan</div>
+        <button class="btn btn-secondary btn-small" id="scanBtn" onclick="runScan()">🔍 Lancer le scan</button>
+      </div>
+      <div class="scan-results" id="scanResults"></div>
+    </div>
+
+    <div id="moduleConfigs"></div>
+
+    <div class="actions">
+      <button class="btn btn-ghost" onclick="goPrev()">← Retour</button>
+      <button class="btn btn-primary" onclick="goNext()">Continuer →</button>
+    </div>
+  </section>
+
+  <!-- ════════════════════════════════════════════════════════════
+       STEP 4 — Finance
+       ════════════════════════════════════════════════════════════ -->
+  <section class="step" data-step="3">
+    <div class="step-label">Étape 4 sur 6</div>
+    <h2>Vos tarifs d'électricité</h2>
+    <p class="lede">
+      Cela nous permet de calculer vos économies réelles et la rentabilité de votre installation.
+    </p>
+
+    <div class="field">
+      <label>Choisissez votre offre EDF</label>
+      <div class="price-presets">
+        <div class="preset selected" data-preset="base" onclick="selectPreset('base', this)">
+          Base
+          <span class="price">0,2516 €/kWh</span>
+        </div>
+        <div class="preset" data-preset="hchp" onclick="selectPreset('hchp', this)">
+          Heures creuses
+          <span class="price">0,18 / 0,27 €</span>
+        </div>
+        <div class="preset" data-preset="custom" onclick="selectPreset('custom', this)">
+          Personnalisé
+          <span class="price">à saisir</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="field-row">
+      <div class="field">
+        <label>Prix d'achat (import) €/kWh</label>
+        <input type="number" id="financeImport" step="0.0001" value="0.2516">
+      </div>
+      <div class="field">
+        <label>Prix de revente €/kWh</label>
+        <input type="number" id="financeExport" step="0.0001" value="0.1269">
+      </div>
+    </div>
+
+    <div class="field">
+      <label>Abonnement mensuel (€/mois)</label>
+      <input type="number" id="financeSubscription" step="0.01" value="0">
+      <div class="hint">Optionnel — laisser à 0 si vous ne souhaitez pas le suivre.</div>
+    </div>
+
+    <div class="actions">
+      <button class="btn btn-ghost" onclick="goPrev()">← Retour</button>
+      <button class="btn btn-primary" onclick="goNext()">Continuer →</button>
+    </div>
+  </section>
+
+  <!-- ════════════════════════════════════════════════════════════
+       STEP 5 — Admin account
+       ════════════════════════════════════════════════════════════ -->
+  <section class="step" data-step="4">
+    <div class="step-label">Étape 5 sur 6</div>
+    <h2>Créez votre compte administrateur</h2>
+    <p class="lede">
+      Ce compte vous permettra de modifier la configuration. Notez bien le mot de passe — il n'y a pas de récupération automatique.
+    </p>
+
+    <div class="field">
+      <label>Nom d'utilisateur</label>
+      <input type="text" id="adminUsername" autocomplete="username" placeholder="ex: alexis" autocapitalize="none">
+    </div>
+    <div class="field">
+      <label>Mot de passe (8 caractères minimum)</label>
+      <input type="password" id="adminPassword" autocomplete="new-password" placeholder="•••••••••">
+      <div class="hint">Choisissez quelque chose de mémorable mais robuste.</div>
+    </div>
+    <div class="field">
+      <label>Confirmer le mot de passe</label>
+      <input type="password" id="adminPassword2" autocomplete="new-password" placeholder="•••••••••">
+    </div>
+
+    <div class="alert-box">
+      💡 <strong>Bon à savoir :</strong> en cas d'oubli, créez un fichier vide nommé <code>reset.flag</code> dans le dossier <code>/data</code> de votre serveur, redémarrez : le wizard se relancera.
+    </div>
+
+    <div class="actions">
+      <button class="btn btn-ghost" onclick="goPrev()">← Retour</button>
+      <button class="btn btn-primary" id="step5Next" onclick="goNext()">Continuer →</button>
+    </div>
+  </section>
+
+  <!-- ════════════════════════════════════════════════════════════
+       STEP 6 — Recap + Submit
+       ════════════════════════════════════════════════════════════ -->
+  <section class="step" data-step="5">
+    <div class="step-label">Étape 6 sur 6 — Dernière vérification</div>
+    <h2>Tout est prêt</h2>
+    <p class="lede">
+      Vérifiez votre configuration. Vous pourrez tout modifier plus tard depuis les réglages.
+    </p>
+
+    <div id="recapContainer"></div>
+
+    <div id="submitError" class="alert-box error" style="display:none;"></div>
+
+    <div class="actions">
+      <button class="btn btn-ghost" onclick="goPrev()">← Retour</button>
+      <button class="btn btn-primary" id="submitBtn" onclick="submitWizard()">
+        🚀 Démarrer Simply Energy Home
+      </button>
+    </div>
+  </section>
+
+  <footer>
+    Une question ? <a href="#" onclick="openSupport(event)">Contactez-nous</a>
+  </footer>
+</div>
+
+
+<script>
+// ═══════════════════════════════════════════════════════════════════
+//  Wizard state
+// ═══════════════════════════════════════════════════════════════════
+const state = {
+  currentStep: 0,
+  totalSteps: 6,
+  availableModules: [],
+  selectedModules: new Set(),
+  moduleConfigs: {},   // {voltronic: {host, port, ...}, victron: {...}, ...}
+  finance: { import_price: 0.2516, export_price: 0.1269, subscription: 0, contract_type: 'fixed' },
+  admin: { username: '', password: '' },
+  scanResults: [],
+};
+
+// ═══════════════════════════════════════════════════════════════════
+//  Init
+// ═══════════════════════════════════════════════════════════════════
+async function init() {
+  renderProgress();
+  try {
+    const r = await fetch('/api/setup/status');
+    const data = await r.json();
+    state.availableModules = data.available_modules || [];
+    renderModuleGrid();
+    if (!data.first_boot && data.users_count > 0) {
+      // Wizard rejoué par un admin → masquer l'étape compte (déjà créé)
+      document.querySelector('[data-step="4"]').style.display = 'none';
+      // step5Next devient le bouton de l'étape 4 (finance) → next va directement au recap
+    }
+  } catch (e) {
+    showError('Erreur de connexion au serveur. Rechargez la page.');
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════
+//  Navigation
+// ═══════════════════════════════════════════════════════════════════
+function goNext() {
+  if (!validateStep(state.currentStep)) return;
+  if (state.currentStep < state.totalSteps - 1) {
+    state.currentStep++;
+    renderStep();
+    if (state.currentStep === 2) renderModuleConfigs();
+    if (state.currentStep === 5) renderRecap();
+  }
+}
+
+function goPrev() {
+  if (state.currentStep > 0) {
+    state.currentStep--;
+    renderStep();
+  }
+}
+
+function validateStep(idx) {
+  if (idx === 1 && state.selectedModules.size === 0) {
+    alert('Sélectionnez au moins un module (ou « Aucun matériel pour l\\'instant »).');
+    return false;
+  }
+  if (idx === 4) {
+    const u = document.getElementById('adminUsername').value.trim();
+    const p = document.getElementById('adminPassword').value;
+    const p2 = document.getElementById('adminPassword2').value;
+    if (u.length < 3) { alert('Le nom d\\'utilisateur doit faire au moins 3 caractères.'); return false; }
+    if (p.length < 8) { alert('Le mot de passe doit faire au moins 8 caractères.'); return false; }
+    if (p !== p2) { alert('Les deux mots de passe ne correspondent pas.'); return false; }
+    state.admin.username = u;
+    state.admin.password = p;
+  }
+  return true;
+}
+
+function renderStep() {
+  document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
+  document.querySelector(`[data-step="${state.currentStep}"]`).classList.add('active');
+  renderProgress();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function renderProgress() {
+  const bar = document.getElementById('progressBar');
+  bar.innerHTML = '';
+  for (let i = 0; i < state.totalSteps; i++) {
+    const seg = document.createElement('div');
+    seg.className = 'progress-bar';
+    if (i < state.currentStep) seg.classList.add('done');
+    if (i === state.currentStep) seg.classList.add('active');
+    bar.appendChild(seg);
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════
+//  Étape 2 — module grid
+// ═══════════════════════════════════════════════════════════════════
+function renderModuleGrid() {
+  const grid = document.getElementById('modulesGrid');
+  grid.innerHTML = '';
+  state.availableModules.forEach(m => {
+    const card = document.createElement('div');
+    card.className = 'module-card';
+    card.dataset.id = m.id;
+    card.innerHTML = `
+      <div class="icon">${m.icon}</div>
+      <div>
+        <div class="title">${m.name}</div>
+      </div>
+      <div class="check"></div>
+    `;
+    card.onclick = () => toggleModule(m.id, card);
+    grid.appendChild(card);
+  });
+}
+
+function toggleModule(id, card) {
+  if (state.selectedModules.has(id)) {
+    state.selectedModules.delete(id);
+    card.classList.remove('checked');
+  } else {
+    state.selectedModules.add(id);
+    card.classList.add('checked');
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════
+//  Étape 3 — scan + module configs
+// ═══════════════════════════════════════════════════════════════════
+async function runScan() {
+  const btn = document.getElementById('scanBtn');
+  const status = document.getElementById('scanStatus');
+  btn.disabled = true;
+  status.innerHTML = '<div class="scan-spinner"></div> Scan en cours… (15-30 secondes)';
+  document.getElementById('scanResults').innerHTML = '';
+  try {
+    const r = await fetch('/api/setup/scan_network', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ timeout: 1.5 }),
+    });
+    const data = await r.json();
+    state.scanResults = data.found || [];
+    if (state.scanResults.length === 0) {
+      status.textContent = 'Aucun appareil compatible détecté. Vous pouvez saisir une IP manuellement ci-dessous.';
+    } else {
+      status.textContent = `${state.scanResults.length} appareil(s) trouvé(s) sur votre réseau.`;
+      renderScanResults();
+    }
+  } catch (e) {
+    status.textContent = 'Erreur lors du scan. Vérifiez la connexion réseau.';
+  }
+  btn.disabled = false;
+}
+
+function renderScanResults() {
+  const cont = document.getElementById('scanResults');
+  cont.innerHTML = '';
+  state.scanResults.forEach(d => {
+    const el = document.createElement('div');
+    el.className = 'scan-device';
+    const modules = d.suggested_modules.length ? d.suggested_modules.join(', ') : 'Inconnu';
+    el.innerHTML = `
+      <span>📡</span>
+      <span class="ip">${d.ip}</span>
+      <span class="modules">→ ${modules}</span>
+      <span class="ports">Ports: ${d.open_ports.join(', ')}</span>
+    `;
+    el.onclick = () => useScanResult(d);
+    cont.appendChild(el);
+  });
+}
+
+function useScanResult(d) {
+  // Pour chaque module suggéré qui est aussi sélectionné, pré-remplit l'IP
+  d.suggested_modules.forEach(m => {
+    if (state.selectedModules.has(m)) {
+      const inp = document.getElementById(`cfg_${m}_host`);
+      if (inp) {
+        inp.value = d.ip;
+        inp.style.background = 'var(--grass-soft)';
+        setTimeout(() => inp.style.background = '', 1200);
+      }
+    }
+  });
+}
+
+function renderModuleConfigs() {
+  const cont = document.getElementById('moduleConfigs');
+  cont.innerHTML = '';
+  ['voltronic', 'victron', 'solax', 'pylontech', 'jkbms'].forEach(m => {
+    if (!state.selectedModules.has(m)) return;
+    const def = state.availableModules.find(x => x.id === m) || { name: m, icon: '⚙️' };
+    const cfg = state.moduleConfigs[m] || {};
+    cont.innerHTML += renderModuleConfigCard(m, def, cfg);
+  });
+}
+
+function renderModuleConfigCard(id, def, cfg) {
+  const portMap = { voltronic: 8899, victron: 502, solax: 502, pylontech: 9999, jkbms: 502 };
+  const port = cfg.port || portMap[id] || 502;
+  const host = cfg.host || '';
+  let extra = '';
+  if (id === 'pylontech') {
+    extra = `<div class="field"><label>Nombre de batteries</label><input type="number" id="cfg_${id}_num" value="${cfg.num_batteries || 4}" min="1" max="16"></div>`;
+  }
+  if (id === 'jkbms' || id === 'solax') {
+    extra = `<div class="field"><label>Adresses Modbus (séparées par virgule)</label><input type="text" id="cfg_${id}_ids" value="${(cfg.ids || [1]).join(',')}" placeholder="1,2"></div>`;
+  }
+  return `
+    <div class="module-config">
+      <h3>${def.icon} ${def.name}</h3>
+      <div class="sub">Renseignez l'adresse IP de la passerelle (ou utilisez le scan ci-dessus).</div>
+      <div class="field-row">
+        <div class="field">
+          <label>Adresse IP</label>
+          <input type="text" id="cfg_${id}_host" value="${host}" placeholder="192.168.1.x">
+        </div>
+        <div class="field">
+          <label>Port</label>
+          <input type="number" id="cfg_${id}_port" value="${port}">
+        </div>
+      </div>
+      ${extra}
+      <button class="btn btn-secondary btn-small" onclick="testModule('${id}')">🔌 Tester la connexion</button>
+      <div class="test-result" id="test_${id}"></div>
+    </div>
+  `;
+}
+
+async function testModule(id) {
+  const host = document.getElementById(`cfg_${id}_host`).value.trim();
+  const port = parseInt(document.getElementById(`cfg_${id}_port`).value);
+  const out = document.getElementById(`test_${id}`);
+  if (!host) {
+    out.className = 'test-result ko'; out.textContent = 'Saisissez une adresse IP.'; return;
+  }
+  out.className = 'test-result'; out.textContent = '⏳ Test en cours…'; out.style.display = 'block';
+  const extra = {};
+  const idsEl = document.getElementById(`cfg_${id}_ids`);
+  if (idsEl) extra.unit_id = parseInt(idsEl.value.split(',')[0]) || 1;
+  try {
+    const r = await fetch('/api/setup/test_connection', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ module_type: id, host, port, extra }),
+    });
+    const data = await r.json();
+    if (data.ok) {
+      out.className = 'test-result ok';
+      out.textContent = '✓ ' + (data.detail || 'Connexion OK');
+    } else {
+      out.className = 'test-result ko';
+      out.textContent = '✗ ' + (data.detail || 'Échec');
+    }
+  } catch (e) {
+    out.className = 'test-result ko';
+    out.textContent = '✗ Erreur réseau';
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════
+//  Étape 4 — Finance
+// ═══════════════════════════════════════════════════════════════════
+function selectPreset(p, el) {
+  document.querySelectorAll('.preset').forEach(x => x.classList.remove('selected'));
+  el.classList.add('selected');
+  if (p === 'base') {
+    document.getElementById('financeImport').value = '0.2516';
+    document.getElementById('financeExport').value = '0.1269';
+    state.finance.contract_type = 'fixed';
+  } else if (p === 'hchp') {
+    document.getElementById('financeImport').value = '0.27';  // simplifié
+    document.getElementById('financeExport').value = '0.1269';
+    state.finance.contract_type = 'time_based';
+  } else {
+    state.finance.contract_type = 'fixed';
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════
+//  Étape 6 — Recap
+// ═══════════════════════════════════════════════════════════════════
+function renderRecap() {
+  // Collecter la config des modules
+  state.selectedModules.forEach(id => {
+    const hostEl = document.getElementById(`cfg_${id}_host`);
+    if (!hostEl) return;
+    const portEl = document.getElementById(`cfg_${id}_port`);
+    state.moduleConfigs[id] = {
+      host: hostEl.value.trim(),
+      port: parseInt(portEl.value),
+    };
+    const idsEl = document.getElementById(`cfg_${id}_ids`);
+    if (idsEl) state.moduleConfigs[id].ids = idsEl.value.split(',').map(x => parseInt(x.trim())).filter(Boolean);
+    const numEl = document.getElementById(`cfg_${id}_num`);
+    if (numEl) state.moduleConfigs[id].num_batteries = parseInt(numEl.value);
+  });
+
+  state.finance.import_price = parseFloat(document.getElementById('financeImport').value) || 0;
+  state.finance.export_price = parseFloat(document.getElementById('financeExport').value) || 0;
+  state.finance.subscription = parseFloat(document.getElementById('financeSubscription').value) || 0;
+
+  const c = document.getElementById('recapContainer');
+  let html = '';
+  html += `<div class="recap-section">
+    <h4>Modules activés</h4>
+    ${[...state.selectedModules].map(id => {
+      const def = state.availableModules.find(x => x.id === id) || { name: id, icon: '•' };
+      const cfg = state.moduleConfigs[id];
+      const detail = cfg && cfg.host ? `${cfg.host}:${cfg.port}` : '';
+      return `<div class="row"><span class="k">${def.icon} ${def.name}</span><span class="v">${detail}</span></div>`;
+    }).join('') || '<div class="row"><span class="k">Aucun</span></div>'}
+  </div>`;
+
+  html += `<div class="recap-section">
+    <h4>Tarifs</h4>
+    <div class="row"><span class="k">Prix d'achat</span><span class="v">${state.finance.import_price.toFixed(4)} €/kWh</span></div>
+    <div class="row"><span class="k">Prix de revente</span><span class="v">${state.finance.export_price.toFixed(4)} €/kWh</span></div>
+    ${state.finance.subscription ? `<div class="row"><span class="k">Abonnement</span><span class="v">${state.finance.subscription.toFixed(2)} €/mois</span></div>` : ''}
+  </div>`;
+
+  html += `<div class="recap-section">
+    <h4>Compte administrateur</h4>
+    <div class="row"><span class="k">Nom d'utilisateur</span><span class="v">${state.admin.username || '(non défini)'}</span></div>
+    <div class="row"><span class="k">Mot de passe</span><span class="v">••••••••</span></div>
+  </div>`;
+
+  c.innerHTML = html;
+}
+
+// ═══════════════════════════════════════════════════════════════════
+//  Submit
+// ═══════════════════════════════════════════════════════════════════
+async function submitWizard() {
+  const btn = document.getElementById('submitBtn');
+  const err = document.getElementById('submitError');
+  btn.disabled = true;
+  btn.innerHTML = '⏳ Configuration en cours…';
+  err.style.display = 'none';
+
+  // Construire le payload de config
+  const config = {};
+
+  // Onduleur principal : prendre voltronic ou victron en priorité
+  if (state.selectedModules.has('voltronic')) {
+    const c = state.moduleConfigs.voltronic || {};
+    config.inverter = { type: 'voltronic', mode: 'tcp', host: c.host, port: c.port || 8899 };
+  } else if (state.selectedModules.has('victron')) {
+    config.inverter = { type: 'victron' };
+    config.victron = { host: state.moduleConfigs.victron?.host, port: state.moduleConfigs.victron?.port || 502 };
+  } else {
+    config.inverter = { type: 'none' };
+  }
+
+  // Solax
+  if (state.selectedModules.has('solax')) {
+    const c = state.moduleConfigs.solax || {};
+    config.solax = {
+      enabled: true,
+      inverters: [{
+        id: 'main_solax',
+        plugin_name: 'solax_x1_hybrid_gen4',
+        host: c.host,
+        port: c.port || 502,
+        unit_id: (c.ids && c.ids[0]) || 1,
+      }],
+    };
+  }
+
+  // BMS
+  const bms_sources = [];
+  if (state.selectedModules.has('pylontech')) {
+    const c = state.moduleConfigs.pylontech || {};
+    bms_sources.push({
+      type: 'pylontech', name: 'Pylontech', host: c.host, port: c.port || 9999,
+      num_batteries: c.num_batteries || 4, enabled: true,
+    });
+  }
+  if (state.selectedModules.has('jkbms')) {
+    const c = state.moduleConfigs.jkbms || {};
+    bms_sources.push({
+      type: 'jkbms', name: 'JK-BMS', mode: 'tcp', host: c.host, port: c.port || 502,
+      ids: c.ids || [1], enabled: true,
+    });
+  }
+  if (bms_sources.length) config.bms_sources = bms_sources;
+
+  // Finance
+  if (state.selectedModules.has('finance')) {
+    config.finance = {
+      enabled: true,
+      currency: 'EUR',
+      contract_type: state.finance.contract_type,
+      import_price: state.finance.import_price,
+      export_price: state.finance.export_price,
+      monthly_subscription: state.finance.subscription,
+      timezone: 'Europe/Paris',
+    };
+  }
+
+  if (state.selectedModules.has('forecast')) {
+    config.solar_forecast = { enabled: true };
+  }
+  if (state.selectedModules.has('mqtt')) {
+    config.mqtt = { enabled: true };
+  }
+  if (state.selectedModules.has('alerts')) {
+    config.alerts = { enabled: true };
+  }
+
+  try {
+    const r = await fetch('/api/setup/complete', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        admin_username: state.admin.username,
+        admin_password: state.admin.password,
+        config,
+        enabled_modules: [...state.selectedModules],
+      }),
+    });
+    if (!r.ok) {
+      const data = await r.json().catch(() => ({}));
+      throw new Error(data.detail || `Erreur ${r.status}`);
+    }
+    // Login automatique pour avoir le cookie
+    await fetch('/api/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username: state.admin.username, password: state.admin.password }),
+    });
+    // Redirection vers dashboard
+    showSuccess();
+    setTimeout(() => { window.location.href = '/'; }, 2000);
+  } catch (e) {
+    err.style.display = 'block';
+    err.textContent = '❌ ' + e.message;
+    btn.disabled = false;
+    btn.innerHTML = '🚀 Démarrer Simply Energy Home';
+  }
+}
+
+function showSuccess() {
+  const w = document.querySelector('.wizard');
+  w.innerHTML = `
+    <div style="text-align:center; padding: 80px 20px;">
+      <div style="font-size: 80px; margin-bottom: 24px;">🎉</div>
+      <h2 style="font-family: 'Fraunces', serif; font-size: 36px; margin-bottom: 16px;">C'est parti !</h2>
+      <p style="color: var(--ink-soft); font-size: 17px;">Redirection vers votre tableau de bord…</p>
+    </div>
+  `;
+}
+
+function showError(msg) {
+  alert(msg);
+}
+
+function openSupport(e) {
+  e.preventDefault();
+  alert('Support : envoyez votre demande à support@simplyenergyhome.io');
+}
+
+// ═══════════════════════════════════════════════════════════════════
+init();
+</script>
+</body>
+</html>

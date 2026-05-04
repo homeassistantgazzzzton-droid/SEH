@@ -1,0 +1,10 @@
+network-manager
+dnsmasq-base
+avahi-daemon
+iptables
+ca-certificates
+curl
+gnupg
+lsb-release
+python3
+python3-pip

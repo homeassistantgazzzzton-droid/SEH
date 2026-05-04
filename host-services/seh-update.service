@@ -1,0 +1,16 @@
+[Unit]
+Description=Simply Energy Home — Update orchestrator
+Documentation=https://github.com/simplyenergyhome/seh
+ConditionPathExists=/var/lib/seh/update_request.json
+After=docker.service
+Requires=docker.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/seh-update.sh
+StandardOutput=journal
+StandardError=journal
+TimeoutStartSec=600
+
+[Install]
+WantedBy=multi-user.target

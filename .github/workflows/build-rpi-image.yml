@@ -1,0 +1,149 @@
+name: Build Raspberry Pi Image
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: "Tag/version à builder (ex: v1.0.0 ou main)"
+        required: false
+        default: "main"
+
+env:
+  IMG_NAME: simply-energy-home-rpi
+  PI_GEN_RELEASE: 2024-11-19-raspios-bookworm
+
+jobs:
+  build-image:
+    name: Build RPi ARM64 image
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+
+    steps:
+      - name: Checkout SEH repo
+        uses: actions/checkout@v4
+        with:
+          path: seh
+
+      - name: Free disk space (pi-gen needs ~10 GB)
+        run: |
+          # GitHub runners ont ~14 Go libres, on libère ce qu'on peut
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL
+          sudo apt-get clean
+          df -h
+
+      - name: Determine version tag
+        id: version
+        run: |
+          if [ "${{ github.event_name }}" = "release" ]; then
+            TAG="${{ github.event.release.tag_name }}"
+          else
+            TAG="${{ github.event.inputs.release_tag || 'main' }}"
+          fi
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "Version à builder : $TAG"
+
+      - name: Checkout pi-gen
+        uses: actions/checkout@v4
+        with:
+          repository: RPi-Distro/pi-gen
+          ref: arm64
+          path: pi-gen
+
+      - name: Install pi-gen dependencies
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends \
+            coreutils quilt parted qemu-user-static debootstrap zerofree zip \
+            dosfstools libarchive-tools libcap2-bin grep rsync xz-utils \
+            file git curl bc qemu-utils kpartx gpg pigz arch-test xxd
+
+      - name: Configure pi-gen
+        working-directory: pi-gen
+        run: |
+          cat > config <<EOF
+          IMG_NAME="${{ env.IMG_NAME }}"
+          IMG_FILENAME="${{ env.IMG_NAME }}-${{ steps.version.outputs.tag }}"
+          ZIP_FILENAME="${{ env.IMG_NAME }}-${{ steps.version.outputs.tag }}"
+          ENABLE_SSH=1
+          DEPLOY_COMPRESSION=xz
+          COMPRESSION_LEVEL=6
+          LOCALE_DEFAULT=en_GB.UTF-8
+          TARGET_HOSTNAME=seh
+          KEYBOARD_KEYMAP=us
+          KEYBOARD_LAYOUT="English (US)"
+          TIMEZONE_DEFAULT=Europe/Paris
+          FIRST_USER_NAME=seh
+          FIRST_USER_PASS=changemenow
+          DISABLE_FIRST_BOOT_USER_RENAME=1
+          STAGE_LIST="stage0 stage1 stage2 ./stage-seh"
+          EOF
+          # On skip stage3/4/5 (desktop) → image lite
+
+          # Skip stages non utilisés (NOOBS export)
+          touch stage4/SKIP_IMAGES stage5/SKIP_IMAGES
+          touch stage4/SKIP stage5/SKIP
+
+      - name: Copy SEH stage into pi-gen
+        run: |
+          cp -a seh/pi-gen-stage pi-gen/stage-seh
+          chmod +x pi-gen/stage-seh/*.sh || true
+          chmod +x pi-gen/stage-seh/01-seh-install/00-run-chroot.sh
+          ls -la pi-gen/stage-seh/
+
+      - name: Make sure SEH source is reachable inside pi-gen
+        run: |
+          # Le stage greffé va lancer install-seh.sh qui télécharge depuis GitHub.
+          # En CI on injecte les fichiers directement pour ne pas dépendre du
+          # repo distant pendant le build.
+          mkdir -p pi-gen/stage-seh/01-seh-install/files
+          tar -czf pi-gen/stage-seh/01-seh-install/files/seh-source.tar.gz \
+            -C seh \
+            backend frontend host-services scripts docker-compose.yml docs 2>/dev/null || \
+            tar -czf pi-gen/stage-seh/01-seh-install/files/seh-source.tar.gz \
+              -C seh .
+
+      - name: Build image
+        working-directory: pi-gen
+        run: |
+          sudo ./build.sh 2>&1 | tail -200
+        # On limite la sortie pour pas exploser le log
+
+      - name: Locate built image
+        id: locate
+        run: |
+          IMG=$(find pi-gen/deploy -name "*.img.xz" | head -n1)
+          if [ -z "$IMG" ]; then
+            echo "::error::Image .img.xz introuvable dans pi-gen/deploy/"
+            ls -la pi-gen/deploy/ || true
+            exit 1
+          fi
+          echo "image_path=$IMG" >> "$GITHUB_OUTPUT"
+          ls -lh "$IMG"
+
+      - name: Compute checksums
+        run: |
+          IMG="${{ steps.locate.outputs.image_path }}"
+          sha256sum "$IMG" > "$IMG.sha256"
+          cat "$IMG.sha256"
+
+      - name: Upload as workflow artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.IMG_NAME }}-${{ steps.version.outputs.tag }}
+          path: |
+            ${{ steps.locate.outputs.image_path }}
+            ${{ steps.locate.outputs.image_path }}.sha256
+          retention-days: 30
+
+      - name: Attach to release
+        if: github.event_name == 'release'
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            ${{ steps.locate.outputs.image_path }}
+            ${{ steps.locate.outputs.image_path }}.sha256
+          tag_name: ${{ github.event.release.tag_name }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

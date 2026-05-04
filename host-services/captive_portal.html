@@ -1,0 +1,526 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#fbbf24">
+<title>Simply Energy Home — Configuration wifi</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap');
+
+:root {
+  --bg: #fcfaf6;
+  --bg-elev: #ffffff;
+  --ink: #1a1814;
+  --ink-soft: #6b6358;
+  --ink-faded: #a89e8e;
+  --line: #e8e1d3;
+  --accent: #f59e0b;
+  --accent-deep: #b45309;
+  --accent-soft: #fef3c7;
+  --grass: #4d7c0f;
+  --grass-soft: #ecfccb;
+  --error: #b91c1c;
+  --error-soft: #fee2e2;
+  --shadow: 0 4px 16px rgba(26,24,20,.08);
+  --radius: 14px;
+  --radius-sm: 10px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #14110c; --bg-elev: #1d1914; --ink: #f4eedf;
+    --ink-soft: #a89e8e; --ink-faded: #6b6358;
+    --line: #2a2520; --accent-soft: #3a2e0f;
+    --grass-soft: #1f2e0c; --error-soft: #3a1414;
+  }
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+  background: var(--bg);
+  color: var(--ink);
+  min-height: 100vh;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+body::before {
+  content: '';
+  position: fixed; inset: 0;
+  background:
+    radial-gradient(circle at 90% -10%, rgba(245,158,11,.20) 0%, transparent 50%),
+    radial-gradient(circle at -10% 110%, rgba(77,124,15,.10) 0%, transparent 40%);
+  pointer-events: none; z-index: 0;
+}
+
+.app {
+  position: relative; z-index: 1;
+  max-width: 480px;
+  margin: 0 auto;
+  padding: 24px 20px 40px;
+}
+
+/* ─── Header ────────────────────────────────────────────────────── */
+header {
+  display: flex; align-items: center; gap: 12px;
+  margin-bottom: 28px;
+}
+.logo {
+  width: 44px; height: 44px;
+  background: linear-gradient(135deg, var(--accent), var(--accent-deep));
+  border-radius: 12px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 22px;
+  box-shadow: 0 6px 16px rgba(245,158,11,.32);
+}
+header h1 {
+  font-family: 'Fraunces', serif; font-weight: 500; font-size: 22px;
+  letter-spacing: -0.01em;
+}
+header .sub {
+  font-size: 11px; text-transform: uppercase; letter-spacing: .14em;
+  color: var(--ink-faded);
+}
+
+/* ─── Welcome ────────────────────────────────────────────────────── */
+.intro {
+  background: var(--bg-elev);
+  border-radius: var(--radius);
+  padding: 22px;
+  margin-bottom: 20px;
+  box-shadow: var(--shadow);
+  border: 1px solid var(--line);
+}
+.intro h2 {
+  font-family: 'Fraunces', serif; font-weight: 500; font-size: 22px;
+  margin-bottom: 8px;
+}
+.intro p {
+  color: var(--ink-soft); font-size: 14px;
+}
+
+/* ─── Wifi list ──────────────────────────────────────────────────── */
+.section-title {
+  display: flex; justify-content: space-between; align-items: center;
+  font-size: 12px; text-transform: uppercase; letter-spacing: .14em;
+  color: var(--accent-deep); font-weight: 600;
+  margin: 28px 0 12px;
+}
+.section-title button {
+  background: none; border: none; cursor: pointer;
+  font-size: 12px; color: var(--ink-soft); font-weight: 600;
+  padding: 4px 8px; border-radius: 4px;
+}
+.section-title button:hover { background: var(--accent-soft); color: var(--accent-deep); }
+
+.wifi-list {
+  background: var(--bg-elev);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+.wifi-row {
+  display: flex; align-items: center; gap: 14px;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--line);
+  cursor: pointer;
+  transition: background .12s;
+}
+.wifi-row:last-child { border-bottom: none; }
+.wifi-row:hover { background: var(--accent-soft); }
+.wifi-row.selected { background: var(--accent-soft); }
+.wifi-row .signal {
+  font-size: 22px; flex-shrink: 0; color: var(--ink-soft);
+}
+.wifi-row .name {
+  flex: 1; min-width: 0;
+  font-weight: 500;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.wifi-row .meta {
+  font-size: 12px; color: var(--ink-faded);
+}
+.wifi-row .lock { font-size: 14px; color: var(--ink-faded); }
+
+.wifi-empty, .wifi-loading {
+  padding: 30px 20px; text-align: center;
+  color: var(--ink-soft); font-size: 14px;
+}
+.spinner {
+  display: inline-block;
+  width: 18px; height: 18px;
+  border: 2.5px solid var(--line);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin .9s linear infinite;
+  vertical-align: middle; margin-right: 8px;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ─── Manual input ───────────────────────────────────────────────── */
+.manual-row {
+  padding: 14px 16px;
+  border-top: 1px dashed var(--line);
+  font-size: 13px;
+  color: var(--ink-soft);
+  cursor: pointer;
+  text-align: center;
+}
+.manual-row:hover { color: var(--accent-deep); }
+
+/* ─── Modal password ─────────────────────────────────────────────── */
+.modal-bg {
+  position: fixed; inset: 0;
+  background: rgba(26,24,20,.5);
+  backdrop-filter: blur(8px);
+  display: none;
+  align-items: flex-end; justify-content: center;
+  z-index: 100;
+}
+.modal-bg.show { display: flex; }
+.modal {
+  background: var(--bg-elev);
+  width: 100%; max-width: 480px;
+  border-radius: 18px 18px 0 0;
+  padding: 28px 24px calc(24px + env(safe-area-inset-bottom));
+  animation: slideUp .3s ease;
+}
+@keyframes slideUp { from { transform: translateY(100%); } to { transform: none; } }
+
+.modal h3 {
+  font-family: 'Fraunces', serif; font-weight: 500; font-size: 22px;
+  margin-bottom: 4px;
+}
+.modal .target-ssid {
+  color: var(--accent-deep); font-weight: 600; font-size: 14px;
+  margin-bottom: 18px;
+}
+.field { margin-bottom: 14px; }
+.field label {
+  display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px;
+}
+input[type=text], input[type=password] {
+  width: 100%; padding: 12px 14px;
+  border: 1.5px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--bg);
+  color: var(--ink);
+  font: inherit; font-size: 16px;  /* 16px sur mobile pour pas de zoom auto iOS */
+}
+input:focus {
+  outline: none; border-color: var(--accent);
+  box-shadow: 0 0 0 4px rgba(245,158,11,.18);
+}
+.password-row {
+  position: relative;
+}
+.password-row button.show {
+  position: absolute; right: 8px; top: 50%; transform: translateY(-50%);
+  background: none; border: none; padding: 6px 8px;
+  font-size: 13px; color: var(--ink-soft); cursor: pointer;
+}
+
+.btn-row { display: flex; gap: 10px; margin-top: 18px; }
+.btn {
+  flex: 1; padding: 14px;
+  border: none; border-radius: var(--radius-sm);
+  font: inherit; font-size: 15px; font-weight: 600;
+  cursor: pointer;
+}
+.btn-primary { background: var(--ink); color: var(--bg); }
+.btn-primary:disabled { opacity: .5; cursor: not-allowed; }
+.btn-secondary {
+  background: var(--bg);
+  color: var(--ink);
+  border: 1.5px solid var(--line);
+}
+
+/* ─── Status banner ──────────────────────────────────────────────── */
+.banner {
+  padding: 14px 16px;
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+  margin-bottom: 16px;
+  display: none;
+}
+.banner.show { display: flex; align-items: center; gap: 10px; }
+.banner.info { background: var(--accent-soft); color: var(--accent-deep); }
+.banner.error { background: var(--error-soft); color: var(--error); }
+.banner.success { background: var(--grass-soft); color: var(--grass); }
+
+/* ─── Success final ──────────────────────────────────────────────── */
+.success-screen {
+  display: none;
+  text-align: center;
+  padding: 60px 20px;
+}
+.success-screen.show { display: block; }
+.success-screen .icon { font-size: 72px; margin-bottom: 20px; }
+.success-screen h2 {
+  font-family: 'Fraunces', serif; font-weight: 500; font-size: 30px;
+  margin-bottom: 12px;
+}
+.success-screen p {
+  color: var(--ink-soft); font-size: 15px; margin-bottom: 8px;
+}
+.success-screen .ip {
+  display: inline-block;
+  margin-top: 16px;
+  padding: 10px 16px;
+  background: var(--bg-elev);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  font-family: 'IBM Plex Mono', ui-monospace, monospace;
+  font-weight: 500;
+}
+</style>
+</head>
+<body>
+
+<div class="app" id="mainApp">
+
+  <header>
+    <div class="logo">⚡</div>
+    <div>
+      <h1>Simply Energy Home</h1>
+      <div class="sub">Configuration wifi</div>
+    </div>
+  </header>
+
+  <div class="intro">
+    <h2>Bienvenue 👋</h2>
+    <p>Pour finaliser l'installation, choisissez le réseau wifi de votre domicile ci-dessous.</p>
+  </div>
+
+  <div class="banner" id="banner"></div>
+
+  <div class="section-title">
+    Réseaux disponibles
+    <button onclick="loadNetworks()">↻ Actualiser</button>
+  </div>
+
+  <div class="wifi-list" id="wifiList">
+    <div class="wifi-loading"><div class="spinner"></div>Recherche en cours…</div>
+  </div>
+</div>
+
+<!-- Écran de succès -->
+<div class="app success-screen" id="successScreen">
+  <div class="icon">✅</div>
+  <h2>Connecté !</h2>
+  <p>Simply Energy Home redémarre pour finaliser la configuration.</p>
+  <p>Dans quelques instants, retrouvez votre tableau de bord à l'adresse :</p>
+  <div class="ip">http://seh.local</div>
+</div>
+
+<!-- Modale mot de passe -->
+<div class="modal-bg" id="modal" onclick="if(event.target===this)closeModal()">
+  <div class="modal">
+    <h3>Mot de passe wifi</h3>
+    <div class="target-ssid" id="modalSsid">—</div>
+
+    <div class="field" id="manualSsidField" style="display:none">
+      <label>Nom du réseau (SSID)</label>
+      <input type="text" id="manualSsid" autocomplete="off" autocapitalize="none" autocorrect="off">
+    </div>
+
+    <div class="field">
+      <label>Mot de passe</label>
+      <div class="password-row">
+        <input type="password" id="password" autocomplete="off" autocorrect="off"
+               autocapitalize="none" spellcheck="false">
+        <button type="button" class="show" onclick="togglePwd()">Afficher</button>
+      </div>
+    </div>
+
+    <div class="btn-row">
+      <button class="btn btn-secondary" onclick="closeModal()">Annuler</button>
+      <button class="btn btn-primary" id="connectBtn" onclick="doConnect()">Connecter</button>
+    </div>
+  </div>
+</div>
+
+
+<script>
+// ═══════════════════════════════════════════════════════════════════
+//  State
+// ═══════════════════════════════════════════════════════════════════
+let networks = [];
+let selected = null;       // {ssid, security, ...}
+let connecting = false;
+let pollTimer = null;
+
+// ═══════════════════════════════════════════════════════════════════
+//  Init
+// ═══════════════════════════════════════════════════════════════════
+loadNetworks();
+
+async function loadNetworks() {
+  const list = document.getElementById('wifiList');
+  list.innerHTML = '<div class="wifi-loading"><div class="spinner"></div>Recherche en cours…</div>';
+  try {
+    const r = await fetch('/scan');
+    const data = await r.json();
+    networks = data.networks || [];
+    renderNetworks();
+  } catch (e) {
+    list.innerHTML = '<div class="wifi-empty">Erreur de scan. Réessayez.</div>';
+  }
+}
+
+function renderNetworks() {
+  const list = document.getElementById('wifiList');
+  list.innerHTML = '';
+  if (networks.length === 0) {
+    list.innerHTML = '<div class="wifi-empty">Aucun réseau détecté. Vérifiez que votre box est allumée et réessayez.</div>';
+  } else {
+    networks.forEach(n => {
+      const row = document.createElement('div');
+      row.className = 'wifi-row';
+      const open = !n.security || n.security === 'Open' || n.security === '--';
+      row.innerHTML = `
+        <span class="signal">${signalIcon(n.signal)}</span>
+        <div style="flex:1; min-width:0;">
+          <div class="name">${escapeHtml(n.ssid)}</div>
+          <div class="meta">${n.signal}% · ${open ? 'Ouvert' : n.security}</div>
+        </div>
+        <span class="lock">${open ? '' : '🔒'}</span>
+      `;
+      row.onclick = () => selectNetwork(n);
+      list.appendChild(row);
+    });
+  }
+  // Lien manuel toujours en bas
+  const manual = document.createElement('div');
+  manual.className = 'manual-row';
+  manual.textContent = '+ Saisir un SSID manuellement (réseau caché)';
+  manual.onclick = () => openManual();
+  list.appendChild(manual);
+}
+
+function signalIcon(s) {
+  if (s >= 75) return '📶';
+  if (s >= 50) return '📶';
+  if (s >= 25) return '📶';
+  return '📶';
+}
+
+function escapeHtml(s) {
+  const div = document.createElement('div');
+  div.textContent = s;
+  return div.innerHTML;
+}
+
+function selectNetwork(n) {
+  selected = n;
+  document.getElementById('modalSsid').textContent = n.ssid;
+  document.getElementById('manualSsidField').style.display = 'none';
+  document.getElementById('password').value = '';
+  document.getElementById('password').type = 'password';
+  document.getElementById('modal').classList.add('show');
+  // Si réseau ouvert, on peut connecter sans password
+  setTimeout(() => document.getElementById('password').focus(), 100);
+}
+
+function openManual() {
+  selected = { ssid: '', security: 'WPA2' };
+  document.getElementById('modalSsid').textContent = 'Réseau personnalisé';
+  document.getElementById('manualSsidField').style.display = 'block';
+  document.getElementById('manualSsid').value = '';
+  document.getElementById('password').value = '';
+  document.getElementById('modal').classList.add('show');
+  setTimeout(() => document.getElementById('manualSsid').focus(), 100);
+}
+
+function closeModal() {
+  document.getElementById('modal').classList.remove('show');
+  selected = null;
+}
+
+function togglePwd() {
+  const p = document.getElementById('password');
+  const btn = document.querySelector('.password-row button.show');
+  if (p.type === 'password') {
+    p.type = 'text'; btn.textContent = 'Masquer';
+  } else {
+    p.type = 'password'; btn.textContent = 'Afficher';
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════
+//  Connect
+// ═══════════════════════════════════════════════════════════════════
+async function doConnect() {
+  if (connecting) return;
+  let ssid = selected ? selected.ssid : '';
+  const manualField = document.getElementById('manualSsidField');
+  if (manualField.style.display !== 'none') {
+    ssid = document.getElementById('manualSsid').value.trim();
+  }
+  const password = document.getElementById('password').value;
+  if (!ssid) { showBanner('error', 'Saisissez un SSID.'); return; }
+
+  const btn = document.getElementById('connectBtn');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span> Connexion…';
+  connecting = true;
+  showBanner('info', `Connexion à « ${ssid} » en cours… Cela peut prendre 30 secondes.`);
+  closeModal();
+
+  try {
+    await fetch('/connect', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ssid, password }),
+    });
+    pollStatus();
+  } catch (e) {
+    showBanner('error', 'Erreur lors de l\'envoi. Réessayez.');
+    connecting = false;
+    btn.disabled = false; btn.textContent = 'Connecter';
+  }
+}
+
+async function pollStatus() {
+  if (pollTimer) clearTimeout(pollTimer);
+  try {
+    const r = await fetch('/connect_status');
+    const data = await r.json();
+    if (data.in_progress) {
+      pollTimer = setTimeout(pollStatus, 2000);
+      return;
+    }
+    if (data.last_attempt) {
+      if (data.last_attempt.ok) {
+        showSuccessScreen();
+      } else {
+        connecting = false;
+        showBanner('error', '❌ Échec : ' + (data.last_attempt.message || 'connexion impossible'));
+        const btn = document.getElementById('connectBtn');
+        if (btn) { btn.disabled = false; btn.textContent = 'Connecter'; }
+      }
+    } else {
+      pollTimer = setTimeout(pollStatus, 2000);
+    }
+  } catch (e) {
+    pollTimer = setTimeout(pollStatus, 3000);
+  }
+}
+
+function showBanner(type, msg) {
+  const b = document.getElementById('banner');
+  b.className = 'banner show ' + type;
+  b.textContent = msg;
+}
+
+function showSuccessScreen() {
+  document.getElementById('mainApp').style.display = 'none';
+  document.getElementById('successScreen').classList.add('show');
+}
+</script>
+</body>
+</html>

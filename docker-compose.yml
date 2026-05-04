@@ -1,0 +1,139 @@
+version: "3.8"
+
+# ════════════════════════════════════════════════════════════════════════
+#  SMART ENERGY HUB — Configuration Docker Compose
+# ════════════════════════════════════════════════════════════════════════
+#
+#  Plateforme unifiée : Onduleur + BMS + Finance
+#  Concurrence directe : Solar Assistant, ICC Software
+#
+#  EXEMPLES DE CONFIGURATIONS :
+#
+#  ┌─────────────────────────────────────────────────────────────────┐
+#  │  CONFIG 1 : Voltronic + JK-BMS + Finance                       │
+#  │  → Onduleur Axpert/Voltronic via TCP                           │
+#  │  → 2x JK-BMS en Modbus TCP                                     │
+#  │  → Suivi financier avec tarif HC/HP                            │
+#  ├─────────────────────────────────────────────────────────────────┤
+#  │  CONFIG 2 : Voltronic + Pylontech                              │
+#  │  → Onduleur via TCP + Pylontech US2000B via Elfin EE10         │
+#  ├─────────────────────────────────────────────────────────────────┤
+#  │  CONFIG 3 : JK-BMS seul (monitoring batteries)                 │
+#  │  → Pas d'onduleur, juste surveillance BMS                      │
+#  ├─────────────────────────────────────────────────────────────────┤
+#  │  CONFIG 4 : Écosystème Victron complet                         │
+#  │  → Cerbo GX via Modbus TCP (port 502)                          │
+#  │  → MultiPlus-II + 3x SmartSolar MPPT + BMV/Lynx BMS            │
+#  │  → Tout détecté automatiquement via un seul IP/port            │
+#  │  → BMS_TYPE="none" car le SoC vient du Cerbo                   │
+#  │  → Optionnel : JK-BMS en plus pour cellules individuelles      │
+#  └─────────────────────────────────────────────────────────────────┘
+#
+# ════════════════════════════════════════════════════════════════════════
+
+services:
+  smart-energy-hub:
+    build: .
+    container_name: smart-energy-hub
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+
+    volumes:
+      # Données persistantes (finance store, historiques)
+      - seh-data:/data
+
+    environment:
+      # ════════════════════════════════════════════════════════════
+      #  ONDULEUR — Voltronic / Victron / None
+      # ════════════════════════════════════════════════════════════
+      INVERTER_TYPE: "voltronic"       # voltronic | victron | none
+
+      # ──────────────────────────────────────────────────────────────
+      #  OPTION A : Voltronic / Axpert / MPP Solar
+      # ──────────────────────────────────────────────────────────────
+      INVERTER_MODE: "tcp"             # tcp | serial
+
+      # Mode TCP (passerelle Elfin, Waveshare…)
+      INVERTER_HOST: "192.168.1.100"
+      INVERTER_PORT: "8899"
+
+      # Mode Serial (USB RS232)
+      # INVERTER_MODE: "serial"
+      # INVERTER_SERIAL: "/dev/ttyUSB0"
+      # INVERTER_BAUD: "2400"
+
+      INVERTER_IDS: "1"               # ID(s) onduleur séparés par virgule
+      INVERTER_TIMEOUT: "5.0"
+
+      # ──────────────────────────────────────────────────────────────
+      #  OPTION B : Écosystème Victron (Cerbo GX / Venus OS)
+      #  Le Cerbo expose Multi + MPPTs + BMV via Modbus TCP port 502.
+      #  Pour l'activer :
+      #    INVERTER_TYPE: "victron"
+      #  Activer Modbus TCP sur le Cerbo :
+      #    Settings → Services → Modbus TCP → ON
+      # ──────────────────────────────────────────────────────────────
+      VICTRON_HOST: "192.168.1.50"    # IP du Cerbo GX
+      VICTRON_PORT: "502"
+      VICTRON_TIMEOUT: "5.0"
+      # Optionnel : limiter le scan à des unit IDs précis (sinon scan auto)
+      # VICTRON_SCAN_IDS: "1,2,3,227,225,100"   # 3 MPPT + Multi + BMV + System
+
+      # ════════════════════════════════════════════════════════════
+      #  BMS — Pylontech ou JK-BMS
+      #  Note : avec Victron, le SoC vient déjà du Cerbo, donc BMS_TYPE
+      #  peut rester "none". Sauf si vous avez en plus un JK-BMS/Pylontech
+      #  branché en direct pour monitorer les cellules individuelles.
+      # ════════════════════════════════════════════════════════════
+      BMS_TYPE: "none"                 # pylontech | jkbms | none
+
+      # ── Pylontech US2000B via Elfin EE10 (TCP→RS232) ──────────
+      # BMS_TYPE: "pylontech"
+      ELFIN_HOST: "192.168.1.101"
+      ELFIN_PORT: "9999"
+      NUM_BATTERIES: "4"
+
+      # ── JK-BMS via Modbus TCP (passerelle RS485/Ethernet) ─────
+      # BMS_TYPE: "jkbms"
+      JKBMS_MODE: "tcp"               # tcp | rtu
+      JKBMS_HOST: "192.168.1.102"
+      JKBMS_PORT: "502"
+      JKBMS_IDS: "1,2"                # Adresses Modbus (DIP switches)
+      JKBMS_TIMEOUT: "3.0"
+
+      # ── JK-BMS via USB→RS485 local ────────────────────────────
+      # JKBMS_MODE: "rtu"
+      # JKBMS_SERIAL: "/dev/ttyUSB1"
+      # JKBMS_BAUD: "115200"
+
+      # ════════════════════════════════════════════════════════════
+      #  FINANCE — Moteur de calcul financier
+      # ════════════════════════════════════════════════════════════
+      FINANCE_ENABLED: "false"         # true | false
+      FINANCE_CURRENCY: "EUR"          # EUR | USD | GBP | CHF…
+      FINANCE_CONTRACT_TYPE: "fixed"   # fixed | time_based | tempo
+      FINANCE_MONTHLY_SUBSCRIPTION: "0"
+
+      # Prix en €/kWh (tarif fixe)
+      FINANCE_IMPORT_PRICE: "0.2516"
+      FINANCE_EXPORT_PRICE: "0.1269"
+
+      # Timezone
+      FINANCE_TIMEZONE: "Europe/Paris"
+
+      # ════════════════════════════════════════════════════════════
+      #  GÉNÉRAL
+      # ════════════════════════════════════════════════════════════
+      POLL_INTERVAL: "10"              # Secondes entre chaque lecture
+
+    # Pour accès USB (mode serial), décommenter :
+    # devices:
+    #   - "/dev/ttyUSB0:/dev/ttyUSB0"
+    #   - "/dev/ttyUSB1:/dev/ttyUSB1"
+    # group_add:
+    #   - dialout
+
+volumes:
+  seh-data:
+    driver: local

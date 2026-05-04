@@ -1,0 +1,10 @@
+fastapi==0.111.0
+uvicorn[standard]==0.29.0
+pymodbus==3.7.4
+pyserial==3.5
+pyserial-asyncio==0.6
+paho-mqtt==1.6.1
+# Sprint 10 — Auth + setup wizard
+bcrypt==4.2.0
+PyJWT==2.9.0
+email-validator==2.2.0

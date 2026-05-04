@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" rx="96" fill="#0a0a0f"/>
+  <rect x="40" y="40" width="432" height="432" rx="72" fill="#111118"/>
+  <circle cx="256" cy="200" r="80" fill="none" stroke="#fbbf24" stroke-width="8" opacity=".9"/>
+  <text x="256" y="215" text-anchor="middle" font-family="system-ui" font-weight="700" font-size="48" fill="#fbbf24">⚡</text>
+  <rect x="140" y="340" width="232" height="24" rx="12" fill="#1a1a24"/>
+  <rect x="140" y="340" width="160" height="24" rx="12" fill="#06b6d4" opacity=".7"/>
+  <text x="256" y="410" text-anchor="middle" font-family="system-ui" font-weight="600" font-size="36" fill="#f0f0f4">SEH</text>
+</svg>

@@ -1,0 +1,27 @@
+Smart Energy Hub - Inverters package
+=====================================
+
+This product includes Modbus register mappings derived from the following
+open-source project:
+
+  * homeassistant-solax-modbus
+    Copyright (c) Wills (wills106) and contributors
+    https://github.com/wills106/homeassistant-solax-modbus
+    Licensed under the Apache License, Version 2.0
+
+Specifically, the register addresses, scaling factors, and decoding logic for
+Solax / Growatt / Solis / Sofar / AlphaESS / Solinteg / SRNE / Swatten inverters
+are based on the maintainers' reverse-engineering work documented in the
+plugin_*.py files of that project.
+
+Smart Energy Hub re-implements the integration in a Home Assistant-independent
+way, but the underlying Modbus knowledge comes from this prior art.
+
+Modifications:
+  - Removed Home Assistant entity classes (SensorEntity, NumberEntity, etc.)
+  - Removed config_flow / setup logic specific to HA
+  - Adapted register definitions to use Smart Energy Hub's RegisterDef format
+  - Added Pydantic-style typed status objects (InverterStatus)
+  - Bundled with custom Modbus client based on pymodbus
+
+A copy of the Apache 2.0 License is included in LICENSE-APACHE-2.0.

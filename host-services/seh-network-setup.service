@@ -1,0 +1,26 @@
+[Unit]
+Description=Simply Energy Home — Network setup (hotspot + captive portal)
+Documentation=https://github.com/simplyenergyhome/seh
+# On démarre après que NetworkManager et l'horloge soient prêts
+After=network.target NetworkManager.service systemd-time-wait-sync.service
+Wants=NetworkManager.service
+# On veut que ce service tourne avant docker (qui démarre l'app principale)
+Before=docker.service
+
+[Service]
+Type=simple
+User=root
+ExecStart=/usr/local/bin/seh-network-setup.py
+Restart=on-failure
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+
+# Hardening modéré (on a besoin de root pour iptables/nmcli)
+NoNewPrivileges=false
+ProtectSystem=false
+ProtectHome=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

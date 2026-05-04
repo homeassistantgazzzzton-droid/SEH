@@ -1,0 +1,189 @@
+name: Build x86_64 Image
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: "Tag/version à builder"
+        required: false
+        default: "main"
+
+env:
+  IMG_NAME: simply-energy-home-x86
+
+jobs:
+  build-image:
+    name: Build x86_64 image (debian-live)
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Determine version
+        id: version
+        run: |
+          if [ "${{ github.event_name }}" = "release" ]; then
+            TAG="${{ github.event.release.tag_name }}"
+          else
+            TAG="${{ github.event.inputs.release_tag || 'main' }}"
+          fi
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+
+      - name: Free disk space
+        run: |
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL
+          sudo apt-get clean
+          df -h
+
+      - name: Install live-build
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends \
+            live-build debootstrap squashfs-tools xorriso isolinux \
+            syslinux-common syslinux-efi grub-pc-bin grub-efi-amd64-bin \
+            mtools dosfstools
+
+      - name: Prepare live-build config
+        run: |
+          mkdir -p /tmp/lb && cd /tmp/lb
+          # Initialiser une config debian-live
+          lb config \
+            --distribution bookworm \
+            --architectures amd64 \
+            --binary-images iso-hybrid \
+            --bootloaders "syslinux,grub-efi" \
+            --apt-recommends false \
+            --linux-flavours amd64 \
+            --debian-installer false \
+            --memtest none \
+            --image-name "${{ env.IMG_NAME }}-${{ steps.version.outputs.tag }}"
+
+          # Liste des paquets à inclure dans l'image
+          mkdir -p config/package-lists
+          cat > config/package-lists/seh.list.chroot <<EOF
+          openssh-server
+          network-manager
+          avahi-daemon
+          curl
+          ca-certificates
+          gnupg
+          xz-utils
+          python3
+          python3-pip
+          sudo
+          systemd-timesyncd
+          ifupdown
+          EOF
+
+      - name: Inject SEH installer hook
+        run: |
+          mkdir -p /tmp/lb/config/hooks/normal
+          cp scripts/install-seh.sh /tmp/lb/config/includes.chroot/
+
+          # Hook qui s'exécute pendant le build pour installer SEH dans le rootfs
+          cat > /tmp/lb/config/hooks/normal/9000-install-seh.hook.chroot <<'HOOK'
+          #!/bin/bash
+          set -e
+          echo "── Installing SEH inside live-build chroot ──"
+
+          # Désactive systemd dans le chroot pour éviter erreurs
+          export SEH_NONINTERACTIVE=1
+          export SEH_SKIP_NETWORK=0
+
+          # Docker s'installera via get.docker.com lors du 1er boot,
+          # ou on peut l'installer ici déjà :
+          curl -fsSL https://get.docker.com | sh || true
+
+          # Le code sera fetched depuis le repo lors du 1er boot ;
+          # mais on copie déjà l'install script pour qu'il soit prêt
+          mkdir -p /opt/seh
+          cp /install-seh.sh /opt/seh/install-seh.sh
+          chmod +x /opt/seh/install-seh.sh
+
+          # Service first-boot qui finit l'install
+          cat > /etc/systemd/system/seh-first-boot.service <<EOF
+          [Unit]
+          Description=SEH first boot finalization
+          After=network-online.target docker.service
+          Wants=network-online.target
+          ConditionPathExists=!/var/lib/seh/.installed
+
+          [Service]
+          Type=oneshot
+          ExecStart=/opt/seh/install-seh.sh
+          ExecStartPost=/bin/touch /var/lib/seh/.installed
+          Environment="SEH_NONINTERACTIVE=1"
+          Environment="SEH_SKIP_DOCKER=1"
+          RemainAfterExit=yes
+          TimeoutStartSec=10min
+
+          [Install]
+          WantedBy=multi-user.target
+          EOF
+          systemctl enable seh-first-boot.service
+
+          # Hostname
+          echo "seh" > /etc/hostname
+          echo "127.0.1.1   seh seh.local" >> /etc/hosts
+          systemctl enable avahi-daemon
+          systemctl enable NetworkManager
+
+          # User par défaut
+          useradd -m -s /bin/bash -G sudo,docker seh || true
+          echo "seh:changemenow" | chpasswd
+          echo "seh ALL=(ALL) NOPASSWD: ALL" > /etc/sudoers.d/seh
+
+          echo "── SEH installation in live-build chroot done ──"
+          HOOK
+          chmod +x /tmp/lb/config/hooks/normal/9000-install-seh.hook.chroot
+          mkdir -p /tmp/lb/config/includes.chroot
+
+      - name: Build image
+        working-directory: /tmp/lb
+        run: |
+          sudo lb build 2>&1 | tail -150 || true
+          ls -lh *.iso 2>/dev/null || echo "Pas d'ISO à la racine"
+          ls -lh /tmp/lb/
+
+      - name: Locate ISO
+        id: locate
+        run: |
+          ISO=$(find /tmp/lb -maxdepth 2 -name "*.iso" | head -n1)
+          if [ -z "$ISO" ]; then
+            echo "::error::ISO introuvable"
+            ls -la /tmp/lb/
+            exit 1
+          fi
+          # Compresse en xz pour réduire la taille
+          sudo xz -k -T0 "$ISO"
+          echo "iso_path=$ISO" >> "$GITHUB_OUTPUT"
+          echo "iso_xz_path=$ISO.xz" >> "$GITHUB_OUTPUT"
+          ls -lh "$ISO" "$ISO.xz"
+
+      - name: Compute checksums
+        run: |
+          ISO="${{ steps.locate.outputs.iso_xz_path }}"
+          sha256sum "$ISO" | sudo tee "$ISO.sha256"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.IMG_NAME }}-${{ steps.version.outputs.tag }}
+          path: |
+            ${{ steps.locate.outputs.iso_xz_path }}
+            ${{ steps.locate.outputs.iso_xz_path }}.sha256
+          retention-days: 30
+
+      - name: Attach to release
+        if: github.event_name == 'release'
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            ${{ steps.locate.outputs.iso_xz_path }}
+            ${{ steps.locate.outputs.iso_xz_path }}.sha256
+          tag_name: ${{ github.event.release.tag_name }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

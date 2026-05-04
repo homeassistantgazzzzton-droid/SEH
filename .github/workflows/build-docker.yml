@@ -53,7 +53,9 @@ jobs:
           context: .
           # arm/v7 = Pi Zero 2W si l'OS est en 32-bit (ARMv7).
           # En 64-bit (recommandé), arm64 suffit. On garde les 3 pour couvrir.
-          platforms: linux/amd64,linux/arm64,linux/arm/v7
+          # arm/v7 retiré : Pi Zero 2W + Pi 3/4/5 tournent tous en arm64
+          # avec Raspberry Pi OS 64-bit (notre cible). amd64 = mini-PC x86.
+          platforms: linux/amd64,linux/arm64
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}

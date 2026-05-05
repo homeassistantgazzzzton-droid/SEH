@@ -55,7 +55,8 @@ jobs:
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y --no-install-recommends \
-            coreutils quilt parted qemu-user-static debootstrap zerofree zip \
+            coreutils quilt parted qemu-user-static qemu-user-binfmt \
+            binfmt-support debootstrap zerofree zip \
             dosfstools libarchive-tools libcap2-bin grep rsync xz-utils \
             file git curl bc qemu-utils kpartx gpg pigz arch-test xxd
 
@@ -107,8 +108,8 @@ jobs:
       - name: Build image
         working-directory: pi-gen
         run: |
-          sudo ./build.sh 2>&1 | tail -200
-        # On limite la sortie pour pas exploser le log
+          sudo ./build.sh
+        # Le log peut être long mais on a besoin de voir les erreurs.
 
       - name: Locate built image
         id: locate

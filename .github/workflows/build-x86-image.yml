@@ -49,17 +49,18 @@ jobs:
       - name: Prepare live-build config
         run: |
           mkdir -p /tmp/lb && cd /tmp/lb
-          # Initialiser une config debian-live
+          # Initialiser une config debian-live (options compatibles live-build récente)
           lb config \
             --distribution bookworm \
             --architectures amd64 \
             --binary-images iso-hybrid \
-            --bootloaders "syslinux,grub-efi" \
+            --bootloader "syslinux" \
             --apt-recommends false \
             --linux-flavours amd64 \
             --debian-installer false \
             --memtest none \
-            --image-name "${{ env.IMG_NAME }}-${{ steps.version.outputs.tag }}"
+            --iso-application "Simply Energy Home" \
+            --iso-volume "SEH-${{ steps.version.outputs.tag }}"
 
           # Liste des paquets à inclure dans l'image
           mkdir -p config/package-lists
@@ -144,7 +145,7 @@ jobs:
       - name: Build image
         working-directory: /tmp/lb
         run: |
-          sudo lb build 2>&1 | tail -150 || true
+          sudo lb build
           ls -lh *.iso 2>/dev/null || echo "Pas d'ISO à la racine"
           ls -lh /tmp/lb/
 

@@ -208,11 +208,27 @@ async def setup_complete(req: CompleteWizardRequest, request: Request):
         _db.mark_first_boot_complete()
         logger.info("Wizard: first_boot=false → onboarding terminé")
 
+    # Sprint 16 : auto-restart si on a configuré des modules matériels
+    # (le wizard configure inverter/bms/etc — il faut redémarrer pour que
+    # les boucles asyncio démarrent avec les bons paramètres)
+    restart_scheduled = False
+    if req.config and any(k in req.config for k in
+                          ("inverter", "bms_sources", "victron", "solax")):
+        try:
+            # Import tardif pour éviter circular import
+            from main import _schedule_restart
+            _schedule_restart(delay_seconds=2.0)
+            restart_scheduled = True
+            logger.info("Wizard: auto-restart programmé pour appliquer la config matérielle")
+        except Exception as e:
+            logger.warning("Auto-restart impossible : %s", e)
+
     return {
         "ok": True,
         "bootstrap": bootstrap,
         "admin_created": bootstrap,
         "modules_enabled": req.enabled_modules,
+        "restart_scheduled": restart_scheduled,
         "next": "/login" if bootstrap else "/",
     }
 

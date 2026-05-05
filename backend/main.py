@@ -61,6 +61,34 @@ _ws_clients: list[WebSocket] = []
 
 
 # ═══════════════════════════════════════════════════════════════════════════
+#  Sprint 16 : Auto-restart après changement de config
+# ═══════════════════════════════════════════════════════════════════════════
+#
+# Quand le wizard se termine ou que la config onduleur/BMS change, les
+# boucles de polling existantes ne peuvent pas changer de cible à chaud
+# (les tâches asyncio sont déjà lancées avec une instance de fleet).
+# La solution simple : on signale au process de se terminer après un court
+# délai. Docker a `restart: unless-stopped` donc le conteneur redémarre
+# automatiquement avec la nouvelle config.
+
+def _schedule_restart(delay_seconds: float = 1.5):
+    """
+    Programme l'arrêt du process après `delay_seconds` (laisse le temps au
+    HTTP response de partir). Docker fera le restart.
+    """
+    import os
+    import signal
+
+    async def _delayed_kill():
+        await asyncio.sleep(delay_seconds)
+        logger.warning("Auto-restart programmé : SIGTERM dans 0s")
+        os.kill(os.getpid(), signal.SIGTERM)
+
+    # Lance la coroutine en tâche de fond — la réponse HTTP partira avant le kill
+    asyncio.create_task(_delayed_kill())
+
+
+# ═══════════════════════════════════════════════════════════════════════════
 #  Sprint 13 : Polling adaptatif (ralentit si CPU surchargé)
 # ═══════════════════════════════════════════════════════════════════════════
 
@@ -1044,6 +1072,11 @@ async def save_settings(request: Request):
         return JSONResponse({"error": "Config non initialisée"}, status_code=500)
     try:
         body = await request.json()
+        # Récupérer l'ancienne config pour détecter les changements structurels
+        old_cfg = _cfg.get() or {}
+        old_inverter = old_cfg.get("inverter", {})
+        old_bms = old_cfg.get("bms_sources", [])
+
         new_cfg = _cfg.update(body)
 
         # Mettre à jour le system info
@@ -1068,10 +1101,44 @@ async def save_settings(request: Request):
         if _solax:
             _solax.update_config(new_cfg.get("solax", {}))
 
+        # ── Sprint 16 : auto-restart si onduleur ou BMS ont changé ──
+        # Ces changements ne peuvent pas être appliqués à chaud (boucles asyncio
+        # déjà lancées avec une instance de fleet). On redémarre le process.
+        new_inverter = new_cfg.get("inverter", {})
+        new_bms = new_cfg.get("bms_sources", [])
+
+        inverter_changed = (
+            old_inverter.get("type") != new_inverter.get("type") or
+            old_inverter.get("host") != new_inverter.get("host") or
+            old_inverter.get("port") != new_inverter.get("port") or
+            old_inverter.get("mode") != new_inverter.get("mode")
+        )
+        # Pour les BMS : compare la liste sérialisée pour détecter ajout/suppression/modif
+        bms_changed = (
+            json.dumps(old_bms, sort_keys=True) != json.dumps(new_bms, sort_keys=True)
+        )
+        # Victron / Solax : aussi à redémarrer si host change
+        victron_changed = (
+            old_cfg.get("victron", {}).get("host") != new_cfg.get("victron", {}).get("host") or
+            old_cfg.get("victron", {}).get("port") != new_cfg.get("victron", {}).get("port")
+        )
+
+        needs_restart = inverter_changed or bms_changed or victron_changed
+
+        if needs_restart:
+            _schedule_restart()
+            return {
+                "status": "saved",
+                "version": _cfg.version,
+                "restart_scheduled": True,
+                "message": "Configuration enregistrée. L'application redémarre pour appliquer les changements (10-15 secondes).",
+            }
+
         return {
             "status": "saved",
             "version": _cfg.version,
-            "message": "Config sauvegardée. Alertes/MQTT/Prévisions mis à jour. Redémarrer pour les changements onduleur/BMS.",
+            "restart_scheduled": False,
+            "message": "Configuration enregistrée.",
         }
     except Exception as e:
         return JSONResponse({"error": str(e)}, status_code=400)

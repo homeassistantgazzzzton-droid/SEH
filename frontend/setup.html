@@ -1095,20 +1095,58 @@ async function submitWizard() {
       const data = await r.json().catch(() => ({}));
       throw new Error(data.detail || `Erreur ${r.status}`);
     }
+    const result = await r.json();
+
     // Login automatique pour avoir le cookie
     await fetch('/api/auth/login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ username: state.admin.username, password: state.admin.password }),
     });
-    // Redirection vers dashboard
-    showSuccess();
-    setTimeout(() => { window.location.href = '/'; }, 2000);
+
+    // Sprint 16 : si l'app va redémarrer, on attend qu'elle revienne avant la redirection
+    if (result.restart_scheduled) {
+      showSuccessRestarting();
+      await waitForAppReady();
+      window.location.href = '/';
+    } else {
+      showSuccess();
+      setTimeout(() => { window.location.href = '/'; }, 2000);
+    }
   } catch (e) {
     err.style.display = 'block';
     err.textContent = '❌ ' + e.message;
     btn.disabled = false;
     btn.innerHTML = '🚀 Démarrer Simply Energy Home';
+  }
+}
+
+// Sprint 16 : attend que /health réponde 200 (max 60s)
+async function waitForAppReady() {
+  const start = Date.now();
+  while (Date.now() - start < 60000) {
+    try {
+      const r = await fetch('/health', { cache: 'no-store' });
+      if (r.ok) return true;
+    } catch (e) { /* offline, on retente */ }
+    await new Promise(res => setTimeout(res, 1500));
+  }
+  return false;
+}
+
+function showSuccessRestarting() {
+  const success = document.getElementById('success');
+  if (success) {
+    success.style.display = 'block';
+    success.innerHTML = `
+      <div style="text-align:center;padding:40px 20px">
+        <div style="font-size:48px;margin-bottom:16px">⚙️</div>
+        <h2 style="margin-bottom:12px">Configuration enregistrée</h2>
+        <p style="color:#666;margin-bottom:20px">L'application redémarre pour appliquer les paramètres matériels…</p>
+        <div class="loading-spinner" style="margin:20px auto;width:32px;height:32px;border:3px solid #ddd;border-top-color:#3b82f6;border-radius:50%;animation:spin 1s linear infinite"></div>
+        <p style="color:#999;font-size:13px">Cela prend environ 10-15 secondes.</p>
+      </div>
+      <style>@keyframes spin{to{transform:rotate(360deg)}}</style>`;
   }
 }
 

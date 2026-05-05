@@ -1330,7 +1330,39 @@ settingsCfg.integrations.influxdb_bucket=$('#s-int-bucket')?.value||'solar';
 settingsCfg.integrations.influxdb_org=$('#s-int-org')?.value||'';
 settingsCfg.integrations.influxdb_token=$('#s-int-tok')?.value||'';
 settingsCfg.integrations.influxdb_push_interval_seconds=+($('#s-int-int')?.value)||30;
-try{const r=await fetch('/api/settings',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(settingsCfg)});const d=await r.json();$('#settings-msg').innerHTML=d.status==='saved'?`<div class="alert alert-ok">✅ Sauvegardé. ${d.message||''}</div>`:`<div class="alert alert-err">❌ ${d.error||'Erreur'}</div>`}catch(e){$('#settings-msg').innerHTML=`<div class="alert alert-err">❌ ${e}</div>`}}
+try{
+  const r=await fetch('/api/settings',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(settingsCfg)});
+  const d=await r.json();
+  if(d.status!=='saved'){
+    $('#settings-msg').innerHTML=`<div class="alert alert-err">❌ ${d.error||'Erreur'}</div>`;
+    return;
+  }
+  if(d.restart_scheduled){
+    // Sprint 16 : l'app redémarre — on attend qu'elle revienne avant de cacher la bannière
+    $('#settings-msg').innerHTML=`<div class="alert" style="background:#fef3c7;color:#92400e;padding:12px;border-radius:8px">⚙️ ${d.message||'Redémarrage en cours…'} <span class="dot-loader">⏳</span></div>`;
+    const ok = await waitForAppReady();
+    if(ok){
+      $('#settings-msg').innerHTML=`<div class="alert alert-ok">✅ Application redémarrée avec succès. <a href="/" style="color:inherit;text-decoration:underline">Retour au tableau de bord</a></div>`;
+    } else {
+      $('#settings-msg').innerHTML=`<div class="alert alert-err">⚠️ L'application ne répond pas. Vérifiez les logs.</div>`;
+    }
+  } else {
+    $('#settings-msg').innerHTML=`<div class="alert alert-ok">✅ Sauvegardé. ${d.message||''}</div>`;
+  }
+}catch(e){$('#settings-msg').innerHTML=`<div class="alert alert-err">❌ ${e}</div>`}}
+
+// Sprint 16 : attendre que /health réponde 200 (max 60s)
+async function waitForAppReady(){
+  const start = Date.now();
+  while(Date.now() - start < 60000){
+    try{
+      const r = await fetch('/health', {cache: 'no-store'});
+      if(r.ok) return true;
+    }catch(e){}
+    await new Promise(res => setTimeout(res, 1500));
+  }
+  return false;
+}
 async function testTelegram(){const el=$('#s-al-test');el.textContent='Envoi…';try{const r=await fetch('/api/alerts/test',{method:'POST'});const d=await r.json();el.textContent=d.success?'✅ Envoyé !':'❌ Échec';el.style.color=d.success?'var(--ok)':'var(--err)'}catch(e){el.textContent='❌ '+e;el.style.color='var(--err)'}}
 async function testInflux(){const el=$('#s-int-msg');el.textContent='Envoi…';el.style.color='';try{const r=await fetch('/api/integrations/influx/test',{method:'POST'});const d=await r.json();if(d.status==='ok'){el.textContent=`✅ ${d.lines} lignes envoyées`;el.style.color='var(--ok)'}else if(d.status==='disabled'){el.textContent='⚠️ '+(d.message||'désactivé');el.style.color='var(--load)'}else{el.textContent='❌ '+(d.error||'échec');el.style.color='var(--err)'}}catch(e){el.textContent='❌ '+e;el.style.color='var(--err)'}}
 

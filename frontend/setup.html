@@ -728,14 +728,14 @@ function goPrev() {
 
 function validateStep(idx) {
   if (idx === 1 && state.selectedModules.size === 0) {
-    alert('Sélectionnez au moins un module (ou « Aucun matériel pour l\\'instant »).');
+    alert("Sélectionnez au moins un module (ou « Aucun matériel pour l'instant »).");
     return false;
   }
   if (idx === 4) {
     const u = document.getElementById('adminUsername').value.trim();
     const p = document.getElementById('adminPassword').value;
     const p2 = document.getElementById('adminPassword2').value;
-    if (u.length < 3) { alert('Le nom d\\'utilisateur doit faire au moins 3 caractères.'); return false; }
+    if (u.length < 3) { alert("Le nom d'utilisateur doit faire au moins 3 caractères."); return false; }
     if (p.length < 8) { alert('Le mot de passe doit faire au moins 8 caractères.'); return false; }
     if (p !== p2) { alert('Les deux mots de passe ne correspondent pas.'); return false; }
     state.admin.username = u;

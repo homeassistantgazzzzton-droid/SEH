@@ -8,6 +8,7 @@ import asyncio
 import json
 import logging
 import os
+import sys
 import time
 from typing import Optional
 
@@ -78,6 +79,11 @@ def _schedule_restart(delay_seconds: float = 1.5):
     """
     import os
     import signal
+
+    # En mode test (pytest / TestClient), on ne kill jamais le process
+    if os.environ.get("SEH_DISABLE_RESTART") == "1" or "pytest" in sys.modules:
+        logger.info("Auto-restart sautе́ (mode test détecté)")
+        return
 
     async def _delayed_kill():
         await asyncio.sleep(delay_seconds)

@@ -396,11 +396,31 @@ class JKBMSModbusClient:
         """Lit `count` registres holding depuis `start_addr`. Retourne liste d'int."""
         if not self._client or not self._client.connected:
             raise ConnectionError("Non connecté")
-        resp = await self._client.read_holding_registers(
-            address=start_addr, count=count, slave=self.slave_id
-        )
+        # Compatibilité pymodbus 3.7+ : le nom du kwarg slave a changé
+        # selon les versions (slave / device_id / unit). On essaie dans l'ordre.
+        try:
+            resp = await self._client.read_holding_registers(
+                address=start_addr, count=count, device_id=self.slave_id
+            )
+        except TypeError:
+            try:
+                resp = await self._client.read_holding_registers(
+                    address=start_addr, count=count, slave=self.slave_id
+                )
+            except TypeError:
+                resp = await self._client.read_holding_registers(
+                    address=start_addr, count=count, unit=self.slave_id
+                )
         if resp.isError():
             raise ModbusException(f"Erreur lecture registres {hex(start_addr)}: {resp}")
+        # Defensive : si pymodbus a renvoyé un mauvais type de réponse
+        # (bug d'API connu sur 3.7.x avec un mauvais kwarg), on a un objet
+        # sans attribut .registers — on lève une erreur claire au lieu de crasher
+        if not hasattr(resp, "registers"):
+            raise ModbusException(
+                f"Réponse Modbus inattendue (type={type(resp).__name__}). "
+                f"Probable incompatibilité pymodbus."
+            )
         return list(resp.registers)
 
     async def poll(self) -> JKBMSData:
